@@ -1,16 +1,15 @@
 package com.github.cosmo0920.fluentd.flume.plugins;
-import org.apache.flume.Event;
 
-import org.komamitsu.fluency.Fluency;
-
-import java.nio.charset.StandardCharsets;
 import java.io.IOException;
-import java.lang.RuntimeException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.flume.Event;
+import org.komamitsu.fluency.Fluency;
+
 import com.github.cosmo0920.fluentd.flume.plugins.parser.EventParser;
-import com.github.cosmo0920.fluentd.flume.plugins.parser.PlainTextParser;
 import com.github.cosmo0920.fluentd.flume.plugins.parser.JsonParser;
+import com.github.cosmo0920.fluentd.flume.plugins.parser.PlainTextParser;
 
 class FluencyPublisher {
 	private Fluency fluency;

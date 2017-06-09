@@ -5,7 +5,7 @@ plugins {
   id 'com.github.johnrengelman.shadow' version '1.2.2'
 }
 
-version = '0.0.3'
+version = '0.0.3-1'
 group = 'com.github.cosmo0920'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
@@ -19,15 +19,15 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.komamitsu', name: 'fluency', version: '0.0.10'
+    compile group: 'org.komamitsu', name: 'fluency', version: '1.3.0'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.12'
     compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.12'
     compile group: "org.apache.flume", name: 'flume-ng-core', version: '1.6.0'
     compile group: "org.apache.flume", name: 'flume-ng-sdk', version: '1.6.0'
     compile group: "org.apache.flume", name: 'flume-ng-configuration', version: '1.6.0'
-    compile group: "com.fasterxml.jackson.core", name: "jackson-core", version: "2.6.1"
-    compile group: "com.fasterxml.jackson.core", name: "jackson-annotations", version: "2.6.1"
-    compile group: "com.fasterxml.jackson.core", name: "jackson-databind", version: "2.6.1"
+    compile group: "com.fasterxml.jackson.core", name: "jackson-core", version: "2.6.7"
+    compile group: "com.fasterxml.jackson.core", name: "jackson-annotations", version: "2.6.7"
+    compile group: "com.fasterxml.jackson.core", name: "jackson-databind", version: "2.6.7"
     compile group: 'org.jruby.joni', name: 'joni', version: '2.1.6'
     compile group: 'com.google.guava', name: 'guava', version: '18.0'
     testCompile group: 'junit', name: 'junit', version: '4.12'

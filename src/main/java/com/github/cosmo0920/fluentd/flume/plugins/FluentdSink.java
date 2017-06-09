@@ -29,6 +29,7 @@ public class FluentdSink extends AbstractSink implements Configurable {
 	private String tag;
 	private String format;
 	private String backupDir;
+	private int batchSize = 1000;
 
 	@VisibleForTesting
 	public FluencyPublisher publisher;
@@ -45,6 +46,7 @@ public class FluentdSink extends AbstractSink implements Configurable {
 		tag = context.getString("tag");
 		format = context.getString("format");
 		backupDir = context.getString("backupDir");
+		String batchSizeStr = context.getString("batchSize");
 
 		if (portStr != null) {
 			port = Integer.parseInt(portStr);
@@ -63,6 +65,13 @@ public class FluentdSink extends AbstractSink implements Configurable {
 		if (backupDir == null) {
 			logger.warn("Unable to find backupDir in conf. Log lost may happen.");
 		}
+		
+		if (batchSizeStr != null && !batchSizeStr.isEmpty()) {
+			batchSize = Integer.parseInt(batchSizeStr);
+			if (batchSize <= 0) {
+				throw new IllegalArgumentException("Property 'batchSize' must be greater than zero.");
+			}
+		}
 
 		Preconditions.checkState(hostname != null, "No hostname specified");
 		Preconditions.checkState(tag != null, "No tag specified");
@@ -73,6 +82,11 @@ public class FluentdSink extends AbstractSink implements Configurable {
 
 	@Override
 	public void start() {
+		logger.info("Property hostname={}", hostname);
+		logger.info("Property port={}", port);
+		logger.info("Property tag={}", tag);
+		logger.info("Property batchSize={}", batchSize);
+		logger.info("Property backupDir={}", backupDir);
 		logger.info("Fluentd sink starting");
 
 		try {
@@ -86,8 +100,7 @@ public class FluentdSink extends AbstractSink implements Configurable {
 						 + hostname + " port:" + port + ". Exception follows.", e);
 
 			publisher.close();
-
-			return; // FIXME: mark this plugin as failed.
+			throw new RuntimeException(e);
 		}
 
 		super.start();
@@ -108,47 +121,52 @@ public class FluentdSink extends AbstractSink implements Configurable {
 
 	@Override
 	public Status process() throws EventDeliveryException {
-		Status status = Status.READY;
 		Channel channel = getChannel();
 		Transaction transaction = channel.getTransaction();
 
 		try {
 			transaction.begin();
 
-			Event event = channel.take();
-
-			if (event == null) {
-				counterGroup.incrementAndGet("event.empty");
-				status = Status.BACKOFF;
-				transaction.rollback();
-			} else {
-				publisher.publish(event);
-				counterGroup.incrementAndGet("event.fluentd");
-				transaction.commit();
+			int i = 0;
+			for (; i < batchSize; i++) {
+				Event event = channel.take();
+	
+				if (event == null) {
+					break;
+				} else {
+					publisher.publish(event);
+				}
 			}
 
+			transaction.commit();
+
+			if (i > 0) {
+				counterGroup.addAndGet("event.fluentd", (long) i);
+				return Status.READY;
+			} else {
+				counterGroup.incrementAndGet("event.empty");
+				return Status.BACKOFF;
+			}
 		} catch (ChannelException e) {
 			transaction.rollback();
-			logger.error(
-					"Unable to get event from channel. Exception follows.",
-					e);
-			status = Status.BACKOFF;
+			logger.error("Unable to get event from channel. Exception follows.", e);
+			return Status.BACKOFF;
 		} catch (IOException e) {
 			transaction.rollback();
-			logger.error(
-					"Unable to communicate with Fluentd. Exception follows.",
-					e);
-			status = Status.BACKOFF;
-		} catch (RuntimeException e) {
+			logger.error("Unable to communicate with Fluentd. Exception follows.", e);
+			return Status.BACKOFF;
+		} catch (Throwable e) {
 			transaction.rollback();
-			logger.error(
-					"Unable to parse event body. Exception follows.",
-					e);
-			status = Status.BACKOFF;
+			logger.error("Unable to process event. Exception follows.", e);
+			if (e instanceof Error) {
+				throw (Error) e;
+			} else if (e instanceof RuntimeException) {
+				throw (RuntimeException) e;
+			} else {
+				throw new EventDeliveryException(e);
+			}
 		} finally {
 			transaction.close();
 		}
-
-		return status;
 	}
 }

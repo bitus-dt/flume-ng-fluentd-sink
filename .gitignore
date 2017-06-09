@@ -10,3 +10,7 @@
 # Gradle
 .gradle
 build/
+/bin/
+/.project
+/.settings/
+/.classpath
